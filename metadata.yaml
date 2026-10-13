@@ -1,6 +1,8 @@
 homepage: "https://www.ai-advisors.ai"
 documentation: "https://github.com/AI-Advisors/chatgpt-ads-pixel-b2b#readme"
 versions:
+  - sha: 516fdb8f480a380e1c729d81fc73c553f05781ee
+    changeNotes: Clearer gallery description. No behaviour changes.
   - sha: d71ae837e1424bf51a9eb2a163d19069a4247ac7
     changeNotes: Updated brand icon. No behaviour changes.
   - sha: 376431dd8f20401637ff413bfebbfb3a07f7aedd
