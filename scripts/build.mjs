@@ -39,7 +39,7 @@ const tests = read("src/tests.yaml").replace(/\s+$/, "");
 const notes = read("src/notes.txt").replace(/\s+$/, "");
 
 for (const [name, text] of [["code", code], ["tests", tests], ["notes", notes], ["info", JSON.stringify(info)], ["parameters", JSON.stringify(parameters)]]) {
-  if (text.includes("—")) throw new Error(`em dash in ${name}`);
+  if (text.includes("\u2014")) throw new Error(`em dash in ${name}`);
 }
 
 const tos = `By creating or modifying this file you agree to Google Tag Manager's Community
