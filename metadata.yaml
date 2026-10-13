@@ -1,0 +1,5 @@
+homepage: "https://www.ai-advisors.ai"
+documentation: "https://github.com/AI-Advisors/chatgpt-ads-pixel-b2b#readme"
+versions:
+  - sha: 376431dd8f20401637ff413bfebbfb3a07f7aedd
+    changeNotes: Initial release.
