@@ -43,6 +43,6 @@ Background, evidence and spec live in the marketing repo:
 
 ## Status
 
-- 2026-10-13: v1 built. Node tests 27/27; 9 scenarios confirmed end to end in Ads Manager's Event Stream; **in-editor tests 12/12 passed** (Kevin ran them in the website's GTM web container, GTM-PKTFRDMZ; template not saved there). Repo private.
+- 2026-10-13: v1 built. Node tests 27/27; 9 scenarios confirmed end to end in Ads Manager's Event Stream; **in-editor tests 12/12 passed** (Kevin ran them in a GTM web container). Repo private.
 - Import tip: the editor refuses to run tests in a **server** container ("not compatible with Server containers"); use a web container.
 - Not submitted to the gallery.
