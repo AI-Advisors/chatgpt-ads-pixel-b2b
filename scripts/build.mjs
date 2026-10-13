@@ -30,7 +30,7 @@ const info = {
     thumbnail: "data:image/png;base64," + iconB64,
   },
   description:
-    "Sends ChatGPT Ads conversions to OpenAI's Measurement Pixel, built for B2B lead generation. Checks every event against OpenAI's rules before sending, so leads are not silently dropped. Uses OpenAI's consent command. Not affiliated with OpenAI.",
+    "Sends ChatGPT Ads (OpenAI Ads) conversions to OpenAI's Measurement Pixel, built for B2B lead generation: leads, demo bookings, signups and trials. Checks every event against OpenAI's rules before sending, so conversions are not silently dropped. Uses OpenAI's own consent command and shares event IDs for Conversions API deduplication. Not affiliated with OpenAI.",
   containerContexts: ["WEB"],
 };
 
