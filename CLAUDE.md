@@ -45,4 +45,4 @@ Background, evidence and spec live in the marketing repo:
 
 - 2026-10-13: v1 built. Node tests 27/27; 9 scenarios confirmed end to end in Ads Manager's Event Stream; **in-editor tests 12/12 passed** (Kevin ran them in a GTM web container). **Repo made public 2026-10-13** (verified: template.tpl, metadata.yaml, LICENSE, README serve 200; public template.tpl byte-identical to the tested build).
 - Import tip: the editor refuses to run tests in a **server** container ("not compatible with Server containers"); use a web container.
-- Not submitted to the gallery.
+- **Submitted to Google's gallery 2026-10-13** ("Your template has been submitted for review"). Check: `node scripts/check-gtm-gallery-listing.mjs --repo chatgpt-ads-pixel-b2b` in the marketing repo. No status page or support channel; do not re-submit.
