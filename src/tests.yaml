@@ -1,0 +1,161 @@
+scenarios:
+- name: Lead after a product view is sent with its own value and no contents
+  code: |-
+    dl = {
+      event: 'generate_lead', value: 500, currency: 'USD',
+      ecommerce: { currency: 'USD', value: 49, items: [{ item_id: 'PRO', item_name: 'Pro plan', price: 49, quantity: 1 }] }
+    };
+    runCode(mockData);
+    const m = measureCalls();
+    assertThat(m.length).isEqualTo(1);
+    assertThat(m[0][1]).isEqualTo('PIX1');
+    assertThat(m[0][2]).isEqualTo('lead_created');
+    assertThat(m[0][3]).isEqualTo({ type: 'customer_action', amount: 50000, currency: 'USD' });
+    assertThat(m[0][4].event_id).isEqualTo('1700000000000.123456789');
+    assertApi('gtmOnSuccess').wasCalled();
+    assertApi('gtmOnFailure').wasNotCalled();
+- name: Invalid custom event name fails loudly instead of being dropped by OpenAI
+  code: |-
+    runCode(merge(mockData, { eventSource: 'manual', eventName: 'custom', customEventName: 'gtm.formSubmit' }));
+    assertThat(measureCalls().length).isEqualTo(0);
+    assertApi('gtmOnFailure').wasCalled();
+    assertApi('gtmOnSuccess').wasNotCalled();
+- name: Unmapped GTM form submission is skipped by default
+  code: |-
+    dl = { event: 'gtm.formSubmit' };
+    runCode(mockData);
+    assertThat(measureCalls().length).isEqualTo(0);
+    assertApi('gtmOnSuccess').wasCalled();
+- name: Form submission is sent as a lead when the option is on
+  code: |-
+    dl = { event: 'gtm.formSubmit' };
+    runCode(merge(mockData, { formSubmitAsLead: true }));
+    const m = measureCalls();
+    assertThat(m.length).isEqualTo(1);
+    assertThat(m[0][2]).isEqualTo('lead_created');
+- name: Listener event maps lead_type to the OpenAI event
+  code: |-
+    dl = { event: 'b2b_lead', lead_type: 'appointment_scheduled', dedupe_id: 'cal-123' };
+    runCode(mockData);
+    const m = measureCalls();
+    assertThat(m.length).isEqualTo(1);
+    assertThat(m[0][2]).isEqualTo('appointment_scheduled');
+    assertThat(m[0][3]).isEqualTo({ type: 'customer_action' });
+- name: Consent denied with no pixel cookies sends consent false and loads nothing
+  code: |-
+    consent = { ad_storage: false, ad_user_data: false };
+    dl = { event: 'generate_lead' };
+    runCode(mockData);
+    assertThat(oaiqCalls[0]).isEqualTo(['consent', false]);
+    assertThat(measureCalls().length).isEqualTo(0);
+    assertThat(injected.length).isEqualTo(0);
+    assertApi('gtmOnSuccess').wasCalled();
+- name: Consent denied with pixel cookies loads the SDK so OpenAI can remove them
+  code: |-
+    consent = { ad_storage: false, ad_user_data: false };
+    cookies = { __obref: ['abc'] };
+    dl = { event: 'generate_lead' };
+    runCode(mockData);
+    assertThat(oaiqCalls[0]).isEqualTo(['consent', false]);
+    assertThat(oaiqCalls[1][0]).isEqualTo('init');
+    assertThat(measureCalls().length).isEqualTo(0);
+    assertThat(injected.length).isEqualTo(1);
+- name: A stored denial is lifted with consent true before init when consent is now granted
+  code: |-
+    cookies = { __oaiq_consent: ['false'] };
+    dl = { event: 'generate_lead' };
+    runCode(mockData);
+    assertThat(oaiqCalls[0]).isEqualTo(['consent', true]);
+    assertThat(oaiqCalls[1][0]).isEqualTo('init');
+    assertThat(measureCalls().length).isEqualTo(1);
+- name: Value set on the tag is converted to minor units
+  code: |-
+    dl = { event: 'generate_lead' };
+    runCode(merge(mockData, { valueSource: 'set', value: '23.5', currency: 'usd' }));
+    assertThat(measureCalls()[0][3]).isEqualTo({ type: 'customer_action', amount: 2350, currency: 'USD' });
+- name: A value without a currency is removed but the lead is still sent
+  code: |-
+    dl = { event: 'generate_lead', value: 500 };
+    runCode(mockData);
+    const m = measureCalls();
+    assertThat(m.length).isEqualTo(1);
+    assertThat(m[0][3]).isEqualTo({ type: 'customer_action' });
+- name: A repeat of the same lead within the window is ignored
+  code: |-
+    dl = { event: 'generate_lead' };
+    storage['chatgpt_ads_b2b_guard'] = JSON.stringify({ 'lead_created|path:/thanks': 1700000000000 - 1000 });
+    runCode(mockData);
+    assertThat(measureCalls().length).isEqualTo(0);
+    assertApi('gtmOnSuccess').wasCalled();
+- name: Missing Pixel ID fails
+  code: |-
+    runCode(merge(mockData, { pixelId: ' , ' }));
+    assertThat(measureCalls().length).isEqualTo(0);
+    assertApi('gtmOnFailure').wasCalled();
+setup: |-
+  const JSON = require('JSON');
+  const Object = require('Object');
+
+  const merge = (a, b) => {
+    const out = {};
+    Object.keys(a).forEach((k) => { out[k] = a[k]; });
+    Object.keys(b).forEach((k) => { out[k] = b[k]; });
+    return out;
+  };
+
+  const mockData = {
+    pixelId: 'PIX1',
+    eventSource: 'auto',
+    unmappedBehavior: 'skip',
+    valueSource: 'event',
+    sendUserData: true,
+    consentSource: 'gcm',
+    userDataConsent: true,
+    eventIdSource: 'auto',
+    shareEventId: true,
+    guardRepeats: true,
+    guardHours: '24',
+    reportIssues: false,
+    alwaysDebug: false
+  };
+
+  let dl = {};
+  let consent = { ad_storage: true, ad_user_data: true };
+  let cookies = {};
+  let oaiqCalls = [];
+  let injected = [];
+  let storage = {};
+
+  const measureCalls = () => oaiqCalls.filter((c) => c[0] === 'measureSingle');
+
+  mock('copyFromDataLayer', (key) => dl[key]);
+  mock('isConsentGranted', (type) => consent[type] !== false);
+  mock('getCookieValues', (name) => cookies[name] || []);
+  mock('copyFromWindow', (key) => undefined);
+  mock('createArgumentsQueue', () => () => {});
+  mock('callInWindow', function () {
+    const args = [];
+    for (let i = 1; i < arguments.length; i++) args.push(arguments[i]);
+    oaiqCalls.push(args);
+  });
+  mock('injectScript', (url, onSuccess) => {
+    injected.push(url);
+    onSuccess();
+  });
+  mock('getTimestampMillis', () => 1700000000000);
+  mock('generateRandom', () => 123456789);
+  mock('getUrl', () => '/thanks');
+  mock('getContainerVersion', () => ({ previewMode: false, debugMode: false }));
+  mock('createQueue', () => () => {});
+  mock('addConsentListener', () => {});
+  const tstore = {};
+  mockObject('templateStorage', {
+    getItem: (k) => tstore[k],
+    setItem: (k, v) => { tstore[k] = v; },
+    removeItem: (k) => { Object.delete(tstore, k); },
+    clear: () => {}
+  });
+  mockObject('localStorage', {
+    getItem: (k) => storage[k],
+    setItem: (k, v) => { storage[k] = v; }
+  });
